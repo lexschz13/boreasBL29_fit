@@ -7,7 +7,27 @@ from .defaults import data_cook_position as dcp
 
 
 
-def _read_boreas_file(filename, sample_list=[], disc_mode="region", region_limits=[]):
+def _read_boreas_file(filename, disc_mode="region", sample_list=[], region_limits=[]):
+    """
+    
+
+    Parameters
+    ----------
+    filename : string
+        Name of the .dat file from experimental data and metadata is extracted.
+    disc_mode : string, optional
+        Strategy for sample distinguishment from position. The default is "region".
+    sample_list : list(string), optional
+        Names of the samples. If list is empty there will not be any discrimination and all samples will recive the name "no-name". The default is [].
+    region_limits : list(int,float), optional
+        Limits of the regions occupied by samples with temperature changes. There must be one less limit than samples. The default is [].
+
+    Returns
+    -------
+    data_sets : dictionary
+        This storages all usefull metadata, energy and spectra.
+
+    """
     data_sets = []
     append_new = True
     fl = open(filename + ".dat")
@@ -17,12 +37,13 @@ def _read_boreas_file(filename, sample_list=[], disc_mode="region", region_limit
         if append_new:
             data_arr = np.array(data).astype(np.float64)
             if data_arr.ndim >= 2:
+                # Cooking data
                 data_sets[-1]["Energy"] = data_arr[:,dcp["energy"]]
                 data_sets[-1]["Spectra"] = data_arr[:,dcp["spectra_num"]]/data_arr[:,dcp["spectra_denom"]]
             if not len(data_sets)==0:
                 if len(data_sets[-1]) < 7:
                     data_sets.pop(-1)
-                elif data_sets[-1]["Energy"].size != 801:
+                elif data_sets[-1]["Energy"].size != 801: # Discards uncompleted scans
                     data_sets.pop(-1)
             data_sets.append({})
             append_new = False
@@ -30,13 +51,13 @@ def _read_boreas_file(filename, sample_list=[], disc_mode="region", region_limit
         if len(line) == 0:
             append_new = True
             continue
+        # Reading metadata
         elif line[0] == "#S":
             data_sets[-1]["Scan"] = filename + '-' + line[dcp["scan_name"]]
         elif line[0] == "#P4":
             data_sets[-1]["Temperature"] = int(float(line[dcp["temperature"]]))
             data_sets[-1]["Measured_temperature"] = float(line[dcp["measured temperature"]])
         elif line[0] == "#P3":
-            # print(float(line[1]) / np.pi)
             if np.isclose(float(line[dcp["pol angle"]]), 0, atol=1e-4, rtol=0) or np.isclose(abs(float(line[dcp["pol angle"]])), np.pi, atol=1e-4, rtol=0):
                 data_sets[-1]["Polarization"] = 'LH'
             elif np.isclose(abs(float(line[dcp["pol angle"]])), np.pi/2, atol=1e-4, rtol=0):
@@ -46,9 +67,8 @@ def _read_boreas_file(filename, sample_list=[], disc_mode="region", region_limit
             elif np.isclose(abs(float(line[dcp["pol angle"]])), -np.pi/4, atol=1e-4, rtol=0):
                 data_sets[-1]["Polarization"] = 'CN'
             else:
-                data_sets[-1]["Polarization"] = "npi"
-            # print(float(line[1]) / np.pi, data_sets[-1]["Polarization"])
-        elif line[0] == "#P9":
+                data_sets[-1]["Polarization"] = "npi" # This means "ni puta idea"
+        elif line[0] == "#P9": # Magnetic field on or off, simple
             if np.isclose(float(line[dcp["magnet"]]), 0, atol=1e-2, rtol=0):
                 data_sets[-1]["B"] = False
             else:
@@ -58,19 +78,20 @@ def _read_boreas_file(filename, sample_list=[], disc_mode="region", region_limit
             data_sets[-1]["zSample"] = float(line[dcp["zsample"]])
         else:
             try:
-                _ = float(line[0])
+                _ = float(line[0]) # If line doesn't stars with a number there is no data, it's metadata
                 data.append(line)
             except ValueError:
                 continue
     
-    if len(data_sets[-1]) < 10:
+    if len(data_sets[-1]) < 10: # Discards scans with non-readed metadata
         data_sets.pop(-1)
-    elif data_sets[-1]["Energy"].size != 801:
+    elif data_sets[-1]["Energy"].size != 801: # Discards uncompleted scans
         data_sets.pop(-1)
     
     fl.close()
     
-    # Some code to discriminate samples
+    # Code to discriminate samples
+    # Only one strategy implemented
     
     if not sample_list:
         for d in data_sets:
@@ -100,6 +121,25 @@ def _read_boreas_file(filename, sample_list=[], disc_mode="region", region_limit
 
 
 def data_to_csv(data_file_list, csvname, overwrite=False, **kwargs):
+    """
+    
+
+    Parameters
+    ----------
+    data_file_list : list(string)
+        List of .dat files to cook.
+    csvname : string
+        Name of .csv file when cooked data is served.
+    overwrite : Bool, optional
+        If True overwrites the scans already written. The default is False.
+    disc_mode : string, optional
+        Strategy for sample distinguishment from position. The default is "region".
+    sample_list : list(string), optional
+        Names of the samples. If list is empty there will not be any discrimination and all samples will recive the name "no-name". The default is [].
+    region_limits : list(int,float), optional
+        Limits of the regions occupied by samples with temperature changes. There must be one less limit than samples. The default is [].
+
+    """
     data_sets = []
     for flnm in data_file_list:
         data_sets += _read_boreas_file(flnm, **kwargs)
