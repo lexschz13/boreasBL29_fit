@@ -3,35 +3,36 @@ from scipy.special import voigt_profile as voigt, gamma as gamma_fun
 
 
 
-def lorentz(x, x0, A, g):
-    return A * (g / ((x-x0)**2 + g**2)) / np.pi #Lorentz distribution
+# Single profile functions are provided with a center, an amplitude and corresponding parameters of distribution
+
+def lorentz(x, x0, A, g): # Lorentz distribution
+    return A * (g / ((x-x0)**2 + g**2)) / np.pi 
 
 
-def gauss(x, x0, A, sigma):
+def gauss(x, x0, A, sigma): # Gauss distribution
     return A/(np.sqrt(2*np.pi)*sigma) * np.exp(-0.5*((x-x0)/sigma)**2)
 
 
-def general_gauss(x, x0, A, alpha, beta):
+def general_gauss(x, x0, A, alpha, beta): # Generalized Gauss distribution
     return A * beta/(2*alpha*gamma_fun(1/beta)) * np.exp((np.abs(x-x0)/alpha)**beta)
 
 
-def modvoigt(x, x0, A, sigma, g):
+def modvoigt(x, x0, A, sigma, g): # Voigt distribution
     return A*voigt(x-x0, sigma, g)
 
 
 def _include_constrained_param(const_params, params_per_peak, ratio):
+    # Function to add the amplitude of second peak which is fixed by area ratio
     i = params_per_peak+1
     return tuple(const_params[:i]) + (ratio*const_params[1],) + tuple(const_params[i:])
 
 
-# def mixed_peak(x, x0, A, g, sigma, r=0.3):
-#     if r<0 or r>1:
-#         raise ValueError("The reason between lorentzian and gaussian must be between 0 and 1")
-#     return r*lorentz(x, x0, A, g) + (1-r)*gauss(x, x0, A, sigma)
-    
+
+# Multi-peak functions makes an n-peak profile where the area of the first two peaks are related
+# This functins also add an offset
 
 
-def multi_lorentz(x, ratio=5, nlor=3, *fitcoef):
+def multi_lorentz(x, ratio=5, nlor=3, *fitcoef): # Lorentz distribution
     param = fitcoef[:4] + (ratio*fitcoef[1],) + fitcoef[4:]
     profile = np.zeros_like(x)
     for n in range(nlor):
@@ -39,7 +40,7 @@ def multi_lorentz(x, ratio=5, nlor=3, *fitcoef):
     return profile + param[-1]
 
 
-def multi_gauss(x, ratio=5, nlor=3, *fitcoef):
+def multi_gauss(x, ratio=5, nlor=3, *fitcoef): # Gauss distribution
     param = fitcoef[:4] + (ratio*fitcoef[1],) + fitcoef[4:]
     profile = np.zeros_like(x)
     for n in range(nlor):
@@ -47,7 +48,7 @@ def multi_gauss(x, ratio=5, nlor=3, *fitcoef):
     return profile + param[-1]
 
 
-def multi_general_gauss(x, ratio=5, npeaks=3, *fitcoef):
+def multi_general_gauss(x, ratio=5, npeaks=3, *fitcoef): # Generalized Gauss distribution
     param = _include_constrained_param(fitcoef, 4, ratio)
     profile = np.zeros_like(x)
     for n in range(npeaks):
@@ -55,7 +56,7 @@ def multi_general_gauss(x, ratio=5, npeaks=3, *fitcoef):
     return profile + param[-1]
 
 
-def multi_voigt(x, ratio=5, npeaks=3, *fitcoef):
+def multi_voigt(x, ratio=5, npeaks=3, *fitcoef): # Voigt distribution
     param = _include_constrained_param(fitcoef, 4, ratio)
     profile = np.zeros_like(x)
     for n in range(npeaks):
@@ -64,6 +65,7 @@ def multi_voigt(x, ratio=5, npeaks=3, *fitcoef):
 
 
 
+# Dictionaries for fitting functions
 _params_per_peak = {"voigt":4,
                    "lorentz":3,
                    "gauss":3,
