@@ -11,3 +11,5 @@ The function compute_gap is computing the gap for a sample, polarization, magnet
 For fittings is necessary to indicate fitting model (or mode): lorentz, gauss, voigt or general_gauss.
 
 Do not forget to indicate the energy window for fitting.
+
+Do not forget to edit default values to change things like initial guess or fitting bounds for a particular fitting mode.
