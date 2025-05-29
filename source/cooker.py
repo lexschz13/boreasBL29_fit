@@ -7,7 +7,7 @@ from .defaults import data_cook_position as dcp
 
 
 
-def _read_boreas_file(filename):
+def _read_boreas_file(filename, sample_list=[], disc_mode="region", region_limits=[]):
     data_sets = []
     append_new = True
     fl = open(filename + ".dat")
@@ -58,26 +58,51 @@ def _read_boreas_file(filename):
             data_sets[-1]["zSample"] = float(line[dcp["zsample"]])
         else:
             try:
-                # data_line = float(line[0])
+                _ = float(line[0])
                 data.append(line)
             except ValueError:
                 continue
     
-    if len(data_sets[-1]) < 8:
+    if len(data_sets[-1]) < 10:
         data_sets.pop(-1)
     elif data_sets[-1]["Energy"].size != 801:
         data_sets.pop(-1)
     
     fl.close()
+    
+    # Some code to discriminate samples
+    
+    if not sample_list:
+        for d in data_sets:
+            d["Sample"] = "no-name"
+    
+    else:
+        if not disc_mode in ["region"]:
+            raise ValueError("Non-valid sample discrimination mode")
+            return
+        if disc_mode == "region":
+            if len(region_limits)+1 != len(sample_list):
+                raise ValueError("Number of regions does not fit with number of samples")
+                return
+            region_limits = np.sort(region_limits)
+            for d in data_sets:
+                for i,lim in enumerate(region_limits):
+                    if d["zSample"] <= lim:
+                        d["Sample"] = sample_list[i]
+                if d["zSample"] > region_limits[-1]:
+                    d["Sample"] = sample_list[-1]
+                elif not d["zSample"] <= region_limits[-1]: # If it's nan or similar every comaparison will be False
+                    d["Sample"] = "no-name"
+    
     return data_sets
 
 
 
 
-def data_to_csv(data_file_list, csvname, overwrite=False):
+def data_to_csv(data_file_list, csvname, overwrite=False, **kwargs):
     data_sets = []
     for flnm in data_file_list:
-        data_sets += _read_boreas_file(flnm)
+        data_sets += _read_boreas_file(flnm, **kwargs)
     print("Data sets generated")
     flname = csvname + ".csv"
     flexists = flname in os.listdir()
@@ -92,6 +117,7 @@ def data_to_csv(data_file_list, csvname, overwrite=False):
                              "Polarization",
                              "B",
                              "Incidence angle",
+                             "zSample",
                              "Sample",
                              "Energy"] + [" "]*800 + ["Spectra"] + [" "]*800)
         
@@ -109,6 +135,7 @@ def data_to_csv(data_file_list, csvname, overwrite=False):
                                  dset["Polarization"],
                                  "On" if dset["B"] else "Off",
                                  dset["Incidence angle"],
+                                 dset["zSample"],
                                  dset["Sample"]] + list(dset["Energy"]) + list(dset["Spectra"]))
     
     print("Data saved")
