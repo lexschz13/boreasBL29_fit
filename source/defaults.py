@@ -15,9 +15,11 @@ data_cook_position = {"energy": 1,
                       "zsample": 4}
 
 
+# Allowed fitting modes
 _allowed_modes = ["voigt", "lorentz", "gauss", "gen_gauss"]
 
 
+# Guess for fittings
 guess = {"voigt": (529.118, 0.6, 0.326, 0.123,
                    529.941,     0.521, 0.203,
                    533.392, 0.8, 1.946, 0.321,
@@ -35,6 +37,7 @@ guess = {"voigt": (529.118, 0.6, 0.326, 0.123,
                    533.392, 0.8, 1.946,
                    0)}
 
+# Bounds for fittings
 limits = {"voigt": (np.array([529, 0, 0, 0,
                               529.5,  0, 0,
                               533, 0, 0, 0,
