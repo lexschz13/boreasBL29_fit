@@ -6,12 +6,12 @@ data_cook_position = {"energy": 1,
                       "spectra_num": 6,
                       "spectra_denom": 5,
                       "scan_name": 1,
-                      "temperature": 7,
-                      "measured temperature": 6,
-                      "pol angle": 2,
+                      "temperature": 6,
+                      "measured temperature": 5,
+                      "pol angle": 1,
                       "magnet": 5,
-                      "incidence angle": 2,
-                      "zsample": 5}
+                      "incidence angle": 1,
+                      "zsample": 4}
 
 
 _allowed_modes = ["voigt", "lorentz", "gauss", "gen_gauss"]
