@@ -9,7 +9,7 @@ from .defaults import data_cook_position as dcp
 
 def _read_boreas_file(filename, disc_mode="region", sample_list=[], region_limits=[]):
     """
-    
+    Reads a .dat file from boreas BL29 and convert the usefull metadata and cooked data into a datasets.
 
     Parameters
     ----------
@@ -122,7 +122,7 @@ def _read_boreas_file(filename, disc_mode="region", sample_list=[], region_limit
 
 def data_to_csv(data_file_list, csvname, overwrite=False, **kwargs):
     """
-    
+    Reads a .dat file from boreas BL29 and convert the usefull metadata and cooked data into a .csv file.
 
     Parameters
     ----------

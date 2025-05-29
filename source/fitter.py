@@ -13,10 +13,38 @@ from .defaults import guess, limits, _allowed_modes
 
 
 def _fit_peaks(fit_func, datax, datay, init_guess, bounds, ratio=5, npeaks=3):
+    """
+    Fit spectroscopy data with a n-peak model.
+
+    Parameters
+    ----------
+    fit_func : func
+        Model to fit.
+    datax : numpy.ndarray,list
+        Array with x-coordinates of data to fit.
+    datay : numpy.ndarray,list
+        Array with y-coordinates of data to fit.
+    init_guess : tuple,list
+        Initial guess of fitting parameters.
+    bounds : tuple,list(numpy.array)
+        Bounds for fitting parameters.
+    ratio : float, optional
+        Ratio between two first peaks. The default is 5.
+    npeaks : int, optional
+        Number of peaks. The default is 3.
+
+    Returns
+    -------
+    popt : numpy.array
+        Fitting parameters.
+    pcov : numpy.array
+        Covariance matrix.
+
+    """
     # assert len(init_guess) == nlor*3 # 3 args per peak
     assert len(datax) == len(datay)
     
-    def single_arg_func(x, *fitcoef):
+    def single_arg_func(x, *fitcoef): # Curve fit works assuming that first argument is variable and other ones are fitting parameters
         return fit_func(x, ratio, npeaks, *fitcoef)
     
     return curve_fit(single_arg_func, datax, datay, p0=init_guess, bounds=bounds, maxfev=10000)
@@ -24,6 +52,26 @@ def _fit_peaks(fit_func, datax, datay, init_guess, bounds, ratio=5, npeaks=3):
 
 
 def _data_from_csvline(line, emin=520, emax=560):
+    """
+    Takes a line from .csv and returns the energy and spectra.
+
+    Parameters
+    ----------
+    line : list(string)
+        Strings of a line of a .csv file.
+    emin : float, optional
+        Bottom of energy window. The default is 520.
+    emax : float, optional
+        Top of energy window. The default is 560.
+
+    Returns
+    -------
+    energy : numpy.ndarray
+        Energy data inside the window.
+    spectra : numpy.ndarray
+        Spectra data inside the window.
+
+    """
     data = np.array(line[8:]).astype(np.float64)
     energy = data[:data.size//2]
     spectra = data[data.size//2:]
@@ -33,6 +81,54 @@ def _data_from_csvline(line, emin=520, emax=560):
 
 
 def single_fit(csvname, scan, mode="voigt", emin=520, emax=560, ratio=5, npeaks=3, plot_peaks=True):
+    """
+    Makes a fitting of a single scan from name.
+
+    Parameters
+    ----------
+    csvname : string
+        Name of .csv file where data is stored.
+    scan : string
+        Name of scan to fit.
+    mode : string, optional
+        Kind of profile for peaks. The default is "voigt".
+    emin : float, optional
+        Bottom of energy window. The default is 520.
+    emax : float, optional
+        Top of energy window. The default is 560.
+    ratio : float, optional
+        Ratio between two first peaks. The default is 5.
+    npeaks : int, optional
+        Number of peaks. The default is 3.
+    plot_peaks : bool, optional
+        If True plot the fitting peaks. The default is True.
+
+    Returns
+    -------
+    energy : numpy.ndarray
+        Energy data inside the window.
+    fitted : numpy.ndarray
+        Fitted spectra.
+    spectra : numpy.ndarray
+        Spectra data inside the window.
+    gap : float
+        Gap between two first peaks.
+    errgap : float
+        Gap deviation.
+    rel_errgap :  float
+        Relative gap error.
+    cost : float
+        Cost of least-squares.
+    rel_cost : float
+        Relative cost of least-squares.
+    popt : numpy.array
+        Fitting parameters.
+    pcov : numpy.array
+        Covariance matrix.
+    metadata : dictionary
+        Metadata of the scan.
+
+    """
     if not mode in _allowed_modes:
         raise ValueError("Invalid mode")
     params_per_peak = _params_per_peak[mode]
@@ -108,6 +204,52 @@ def single_fit(csvname, scan, mode="voigt", emin=520, emax=560, ratio=5, npeaks=
 def compute_gap(csvname, pol, sample, B, incidence_angle,
                 mode="voigt", emin=520, emax=560, ratio=5, npeaks=3,
                 plot_gaps=True, ylim_gaps=(0,1)):
+    """
+    For a sample, a polarization, a switch of magnetic field and an incidence angle fits the gap in funciton of temperture.
+
+    Parameters
+    ----------
+    csvname : string
+        Name of .csv file where data is stored.
+    pol : string
+        Polarization.
+    sample : string
+        Name of the sample.
+    B : string
+        Magnetic field "On" of "Off".
+    incidence_angle : int
+        Incidence angle of the beam.
+    mode : string, optional
+        Kind of profile for peaks. The default is "voigt".
+    emin : float, optional
+        Bottom of energy window. The default is 520.
+    emax : float, optional
+        Top of energy window. The default is 560.
+    ratio : float, optional
+        Ratio between two first peaks. The default is 5.
+    npeaks : int, optional
+        Number of peaks. The default is 3.
+    plot_gaps : bool, optional
+        If True plot the gaps in function of temperature. The default is True.
+    ylim_gaps : tuple(float), optional
+        Plotting window of gaps. The default is (0,1).
+
+    Returns
+    -------
+    T : numpy.ndarray
+        Temperatures.
+    gap : numpy.ndarray
+        Gap.
+    errorbar : numpy.ndarray
+        Errors of the gaps.
+    rel_errgap :  numpy.ndarray
+        Relative gap error.
+    cost : numpy.ndarray
+        Cost of least-squares.
+    rel_cost : numpy.ndarray
+        Relative cost of least-squares.
+
+    """
     if not mode in _allowed_modes:
         raise ValueError("Invalid mode")
     params_per_peak = _params_per_peak[mode]
