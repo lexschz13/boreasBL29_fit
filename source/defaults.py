@@ -2,6 +2,7 @@ import numpy as np
 
 
 
+# These indices must be modified in function of the position of metadata on corresponding .dat lines
 data_cook_position = {"energy": 1,
                       "spectra_num": 6,
                       "spectra_denom": 5,
