@@ -1,4 +1,4 @@
-import boreas_fit as bf
+import boreasBL29_fit as bf
 
 
 bf.data_to_csv(["Tue27", "Wed28", "Thu29"], "boreasBL29-gherranz-May2025")
