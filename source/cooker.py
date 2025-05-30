@@ -7,7 +7,7 @@ from .defaults import data_cook_position as dcp
 
 
 
-def _read_boreas_file(filename, disc_mode="region", sample_list=[], region_limits=[]):
+def _read_boreas_file(filename, disc_mode="region", sample_list=[], region_limits=[], exceptions=([],)):
     """
     Reads a .dat file from boreas BL29 and convert the usefull metadata and cooked data into a datasets.
 
@@ -21,6 +21,8 @@ def _read_boreas_file(filename, disc_mode="region", sample_list=[], region_limit
         Names of the samples. If list is empty there will not be any discrimination and all samples will recive the name "no-name". The default is [].
     region_limits : list(int,float), optional
         Limits of the regions occupied by samples with temperature changes. There must be one less limit than samples. The default is [].
+    exceptions : tuple(list(int))
+        If some sample goes out of range you can put an exception. The default is ([],).
 
     Returns
     -------
@@ -83,7 +85,7 @@ def _read_boreas_file(filename, disc_mode="region", sample_list=[], region_limit
             except ValueError:
                 continue
     
-    if len(data_sets[-1]) < 10: # Discards scans with non-readed metadata
+    if len(data_sets[-1]) < 9: # Discards scans with non-readed metadata
         data_sets.pop(-1)
     elif data_sets[-1]["Energy"].size != 801: # Discards uncompleted scans
         data_sets.pop(-1)
@@ -107,12 +109,22 @@ def _read_boreas_file(filename, disc_mode="region", sample_list=[], region_limit
                 return
             region_limits = np.sort(region_limits)
             for d in data_sets:
+                sample_assigned = False
+                for e in exceptions:
+                    try:
+                        if np.isclose(e[1], d["zSample"], atol=1, rtol=0):
+                            d["Sample"] = sample_list[e[0]]
+                            sample_assigned = True
+                    except:
+                        pass
                 for i,lim in enumerate(region_limits):
-                    if d["zSample"] <= lim:
+                    if d["zSample"] <= lim and not sample_assigned:
                         d["Sample"] = sample_list[i]
-                if d["zSample"] > region_limits[-1]:
+                        sample_assigned = True
+                if d["zSample"] > region_limits[-1] and not sample_assigned:
                     d["Sample"] = sample_list[-1]
-                elif not d["zSample"] <= region_limits[-1]: # If it's nan or similar every comaparison will be False
+                    sample_assigned = True
+                if not sample_assigned:
                     d["Sample"] = "no-name"
     
     return data_sets
